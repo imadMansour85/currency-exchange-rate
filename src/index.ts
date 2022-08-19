@@ -1,4 +1,4 @@
-import { CurrencyPair } from "./pair.entity";
+import { CurrencyPair } from "./CurrencyPair.entity";
 
 const entities = [CurrencyPair,];
 

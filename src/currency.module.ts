@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { AppController } from './currency.controller';
+import { AppService } from './currency.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import {TypeOrmModule} from '@nestjs/typeorm';
 import entities from './index';
-import {CurrencyPair} from './pair.entity'
+import {CurrencyPair} from './CurrencyPair.entity'
 
 @Module({
   imports: [

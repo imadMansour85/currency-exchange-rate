@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCurrencyPair } from './createPair.dto';
-import { CurrencyPair } from './pair.entity';
+import { CurrencyPair } from './CurrencyPair.entity';
 import { exchangeBodyDto } from './exchangeBody.dto';
 import { PathItem } from './interfaces/path';
 import { Response } from './interfaces/response';
@@ -106,8 +106,6 @@ export class AppService {
 
         let path = this.shortestPathBfs(graph, from, to)
         let exchangeRate = amount || 1
-
-        console.log(path);
 
         //calculate the exchangeRate after looping the shortest path
         path.forEach(elm => {

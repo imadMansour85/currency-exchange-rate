@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
-import { AppService } from './app.service';
+import { AppService } from './currency.service';
 import { CreateCurrencyPair } from 'src/createPair.dto';
 import { exchangeBodyDto } from './exchangeBody.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
