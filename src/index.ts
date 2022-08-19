@@ -1,6 +1,6 @@
-import { Currency } from "./currency.entity";
+import { CurrencyPair } from "./pair.entity";
 
-const entities = [Currency,];
+const entities = [CurrencyPair,];
 
-export {Currency};
+export {CurrencyPair};
 export default entities;

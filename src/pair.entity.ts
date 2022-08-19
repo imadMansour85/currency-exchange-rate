@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity("currency")
-export class Currency {
+@Entity("pair")
+export class CurrencyPair {
   @PrimaryGeneratedColumn({
     type: 'bigint',
     name: 'pair_id',

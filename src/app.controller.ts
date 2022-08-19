@@ -1,19 +1,23 @@
-import { Body, Controller, Get, Param, Post, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreateCurrencyDto } from 'src/currencies.dto';
-@Controller("/api")
+import { CreateCurrencyPair } from 'src/createPair.dto';
+import { exchangeBodyDto } from './exchangeBody.dto';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+@Controller("/currency")
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
 
-  @Post('create')
+  @Post('pair')
+  @ApiOperation({ summary: 'create if not found an CurrencyPair or just update' })
   @UsePipes(ValidationPipe)
-  createPair(@Body() createCurrencyDto: CreateCurrencyDto) {    
-    return this.appService.createPair(createCurrencyDto);
+  addPair(@Body() CreateCurrencyPair: CreateCurrencyPair) {    
+    return this.appService.addPair(CreateCurrencyPair);
   }
 
-  @Get('test/:start/:end/:amount')
-  test(@Param() params) {
-    return this.appService.getShortestPath(params.start,params.end, params.amount);
+  @Get('exchange?')
+  @ApiOperation({ summary: 'request exchange rate between two currency with a given amount' })
+  convert(@Query() query: exchangeBodyDto) {    
+    return this.appService.convert(query);
   }
 }

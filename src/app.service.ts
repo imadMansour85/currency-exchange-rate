@@ -1,104 +1,118 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CreateCurrencyDto } from './currencies.dto';
-import { Currency } from './currency.entity';
+import { CreateCurrencyPair } from './createPair.dto';
+import { CurrencyPair } from './pair.entity';
+import { exchangeBodyDto } from './exchangeBody.dto';
 
 @Injectable()
 export class AppService {
   constructor(
-    @InjectRepository(Currency) private readonly currencyRepository: Repository<Currency>,
-  ) {}
+    @InjectRepository(CurrencyPair) private readonly currencyRepository: Repository<CurrencyPair>,
+  ) { }
 
-  async createPair(createCurrencyDto: CreateCurrencyDto) {
-    let newPair;
-    let pair = await this.currencyRepository.findOne({
-      where: [{from:createCurrencyDto.from,to:createCurrencyDto.to}, {from:createCurrencyDto.to, to:createCurrencyDto.from}]
-    })
-    
-    if (!pair) {
-       newPair = await this.currencyRepository.create(createCurrencyDto);
-      await  this.currencyRepository.save(newPair);
+
+  //add from-to currency pair
+  async addPair(createCurrencyPair: CreateCurrencyPair) {
+    try {
+
+        let newPair;
+
+        let pair = await this.currencyRepository.findOne({
+          where: [{ from: createCurrencyPair.from, to: createCurrencyPair.to }, { from: createCurrencyPair.to, to: createCurrencyPair.from }]
+        })
+  
+        //update or create if not found a pair Currency
+        if (!pair) {
+          newPair = await this.currencyRepository.create(createCurrencyPair);
+          await this.currencyRepository.save(newPair);
+          return { success: true, message: "pair created successfuly!" }
+        }
+        else {
+          pair.from = createCurrencyPair.from
+          pair.to = createCurrencyPair.to
+          pair.rate = createCurrencyPair.rate
+  
+          await this.currencyRepository.save(pair);
+          return { success: true, message: "pair updated successfuly!" }
+        }
+
+    } catch (error) {
+      console.log(error.message);
+      return { success: false, errorMsg: error.message }
+
     }
-    else {
-      pair.from = createCurrencyDto.from
-      pair.to = createCurrencyDto.to
-      pair.rate = createCurrencyDto.rate
-      
-     await  this.currencyRepository.save(pair);
-
-    }
-
-     
-         return this.currencyRepository.find({});
-
-
   }
-      
 
-  async getShortestPath(start,end, amount) {
-    let gg = await this.currencyRepository.createQueryBuilder('currency')
-    .distinct(true)
-    .select(['currency.from', 'currency.to', 'currency.rate'])
-    .getRawMany();
+  //BFS algorithme shortest path
+  shortestPathBfs(graph, from, to) {
+    try {
 
-   let graph = gg.reduce(function (r, a) {
-       r[a.currency_from] = r[a.currency_from] || [];
-       r[a.currency_to] = r[a.currency_to] || [];
-       r[a.currency_from].push({to:a.currency_to,rate:a.currency_rate});
-       r[a.currency_to].push({to:a.currency_from,rate:1/a.currency_rate});
-       return r;
-   }, Object.create(null));
+      let queue = [[(from), []]],
+        seen = new Set;
+      let path;
+      while (queue.length) {
+        //init queue BFS
+        let [curVert, [...path], rate] = queue.shift();
 
- 
-   
-    function bfs(graph, start, end ) {
-        let queue = [[(start), []]],
-            seen = new Set;
-        let path ;
-        while (queue.length) {          
-            let [curVert, [...path],rate] = queue.shift();
+        //init if undifined the rate for the first currency in the path
+        rate = rate ? rate : 1
+        path.push({ curVert, rate });
 
-            rate = rate ? rate : 1
-            path.push({curVert,rate});
-                      
-            if (curVert === end) return path;
-            if (!seen.has(curVert) && graph[curVert]) {
-              
-              
-                queue.push(...graph[curVert].map(v => {               
-                  return [v.to, path,v.rate]
-                }));
+        //return path if we finish reading queue
+        if (curVert === to) return path;
+        if (!seen.has(curVert) && graph[curVert]) {
 
+          queue.push(...graph[curVert].map(v => {
+            //return destination currency with exchange rate
+            return [v.to, path, v.rate]
+          }));
 
-                
-            }            
-            seen.add(curVert);
-        }        
+        }
+        seen.add(curVert);
+      }
+    } catch (error) {
+      return error.message
     }
-    
-    let startt = start
-    let endd = end
-    if (bfs(graph, startt, endd)) {
+  }
 
-      let path = bfs(graph, startt, endd)
-
-
-      let total = amount
-      path.forEach(elm => {        
-        total =  elm.rate / total
-      });
-      console.log(path);
-      
-
-      
-      return total
+  async convert(exchangeBodyDto: exchangeBodyDto) {
+    try {
+      let { from, to, amount } = exchangeBodyDto
+      //get all currencyPairs with distinct to create graph easily
+      let allCurrencies = await this.currencyRepository.createQueryBuilder('currency')
+        .distinct(true)
+        .select(['currency.from', 'currency.to', 'currency.rate'])
+        .getRawMany();
+  
+      //graph creation  syntax {"EUR":["USD","CAD"]}
+      let graph = allCurrencies.reduce((r, pair) => {
+        r[pair.currency_from] = r[pair.currency_from] || [];
+        r[pair.currency_to] = r[pair.currency_to] || [];
+        r[pair.currency_from].push({ to: pair.currency_to, rate: pair.currency_rate });
+        r[pair.currency_to].push({ to: pair.currency_from, rate: 1 / pair.currency_rate });
+        return r;
+      }, Object.create(null));
+  
+  
+  
+      if (this.shortestPathBfs(graph, from, to)) {
+  
+        let path = this.shortestPathBfs(graph, from, to)
+        let exchangeRate = amount || 1
+  
+        //calculate the exchangeRate after looping the shortest path
+        path.forEach(elm => {
+          exchangeRate = elm.rate / exchangeRate
+        });
+  
+        return { success: true, exchangeRate: exchangeRate }
+      }
+      else {
+        return { success: false, message: "No data available" }
+      }
+    } catch (error) {
+      return { success: false, message: error.message }
     }
-    else{
-      return "no data"
-    }
-     
-
-    
-}
+  }
 }
