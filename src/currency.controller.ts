@@ -10,14 +10,14 @@ export class AppController {
 
 
   @Post('pair')
-  @ApiOperation({ summary: 'create if not found an CurrencyPair or just update' })
+  @ApiOperation({ summary: 'create currencyPair if its not exist in DB else update the rate' })
   @UsePipes(ValidationPipe)
   addPair(@Body() CreateCurrencyPair: CreateCurrencyPair): Promise<Response> {
     return this.appService.addPair(CreateCurrencyPair);
   }
 
   @Get('exchange?')
-  @ApiOperation({ summary: 'request exchange rate between two currency with a given amount' })
+  @ApiOperation({ summary: 'if amount exist in the query convert the amount to the given currency else give the exchange rate' })
   convert(@Query() query: exchangeBodyDto): Promise<Response> {
     return this.appService.convert(query);
   }
