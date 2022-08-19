@@ -8,12 +8,12 @@ export class AppController {
 
   @Post('create')
   @UsePipes(ValidationPipe)
-  createPair(@Body() createCurrencyDto: CreateCurrencyDto) {
+  createPair(@Body() createCurrencyDto: CreateCurrencyDto) {    
     return this.appService.createPair(createCurrencyDto);
   }
 
-  @Get('test/:start/:end')
+  @Get('test/:start/:end/:amount')
   test(@Param() params) {
-    return this.appService.getShortestPath(params.start,params.end);
+    return this.appService.getShortestPath(params.start,params.end, params.amount);
   }
 }

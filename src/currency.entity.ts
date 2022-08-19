@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity("currency")
 export class Currency {
   @PrimaryGeneratedColumn({
     type: 'bigint',
@@ -21,8 +21,7 @@ export class Currency {
   to: string;
 
   @Column({
-    nullable: false,
-    default: '',
+    default: 0,
   })
   rate: number;
 }

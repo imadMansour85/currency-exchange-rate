@@ -10,43 +10,92 @@ export class AppService {
     @InjectRepository(Currency) private readonly currencyRepository: Repository<Currency>,
   ) {}
 
-  createPair(createCurrencyDto: CreateCurrencyDto) {
-    const newPair = this.currencyRepository.create(createCurrencyDto);
-    return this.currencyRepository.save(newPair);
+  async createPair(createCurrencyDto: CreateCurrencyDto) {
+    let newPair;
+    let pair = await this.currencyRepository.findOne({
+      where: [{from:createCurrencyDto.from,to:createCurrencyDto.to}, {from:createCurrencyDto.to, to:createCurrencyDto.from}]
+    })
+    
+    if (!pair) {
+       newPair = await this.currencyRepository.create(createCurrencyDto);
+      await  this.currencyRepository.save(newPair);
+    }
+    else {
+      pair.from = createCurrencyDto.from
+      pair.to = createCurrencyDto.to
+      pair.rate = createCurrencyDto.rate
+      
+     await  this.currencyRepository.save(pair);
+
+    }
+
+     
+         return this.currencyRepository.find({});
+
+
   }
       
 
-  getShortestPath(start,end): any {
-    const graph = { "A": ["B", "C"], "B":["D","E"],"E":["F"]};
+  async getShortestPath(start,end, amount) {
+    let gg = await this.currencyRepository.createQueryBuilder('currency')
+    .distinct(true)
+    .select(['currency.from', 'currency.to', 'currency.rate'])
+    .getRawMany();
 
-    function bfs(graph, start, end) {
+   let graph = gg.reduce(function (r, a) {
+       r[a.currency_from] = r[a.currency_from] || [];
+       r[a.currency_to] = r[a.currency_to] || [];
+       r[a.currency_from].push({to:a.currency_to,rate:a.currency_rate});
+       r[a.currency_to].push({to:a.currency_from,rate:1/a.currency_rate});
+       return r;
+   }, Object.create(null));
+
+ 
+   
+    function bfs(graph, start, end ) {
         let queue = [[(start), []]],
             seen = new Set;
-    
-        while (queue.length) {
-            let [curVert, [...path]] = queue.shift();
-            path.push(curVert);
+        let path ;
+        while (queue.length) {          
+            let [curVert, [...path],rate] = queue.shift();
+
+            rate = rate ? rate : 1
+            path.push({curVert,rate});
+                      
             if (curVert === end) return path;
-    
             if (!seen.has(curVert) && graph[curVert]) {
-                queue.push(...graph[curVert].map(v => [v, path]));
-            }
+              
+              
+                queue.push(...graph[curVert].map(v => {               
+                  return [v.to, path,v.rate]
+                }));
+
+
+                
+            }            
             seen.add(curVert);
-        }
+        }        
     }
     
-    let startt = "F"
-    let endd = "A"
+    let startt = start
+    let endd = end
     if (bfs(graph, startt, endd)) {
-      console.log(bfs(graph, startt, endd));
-      return bfs(graph, startt, endd)
-    }
-    else if(bfs(graph, endd, startt)){
-      // console.log(bfs(graph, endd, startt).reverse());
-      return (bfs(graph, endd, startt)).reverse()
+
+      let path = bfs(graph, startt, endd)
+
+
+      let total = amount
+      path.forEach(elm => {        
+        total =  elm.rate / total
+      });
+      console.log(path);
+      
+
+      
+      return total
     }
     else{
-      "bfs(graph, start, end)"
+      return "no data"
     }
      
 
